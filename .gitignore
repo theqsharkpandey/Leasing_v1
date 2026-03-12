@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+debug.log
+server_output.log
+nul
+tmpclaude-*
+.next/
+.vercel/
+dist/
+build/
+*.log
