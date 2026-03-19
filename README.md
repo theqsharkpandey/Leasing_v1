@@ -4,14 +4,15 @@ A comprehensive, full-stack commercial real estate leasing platform designed to 
 
 ## 🚀 Live Demo
 
-- **Frontend Application**: [Live Demo Link (Placeholder)](#)
-- **Backend API URL**: [Live API Link (Placeholder)](#)
+- **Frontend Application**: https://leasingworld.vercel.app/
+- **Backend API URL**: https://leasing-v1.onrender.com/
 
 ## 📸 Screenshots
 
 | Homepage | Property Details | Admin Dashboard |
 |:---:|:---:|:---:|
-| ![Homepage Placeholder](https://via.placeholder.com/400x250?text=Homepage) | ![Property Details Placeholder](https://via.placeholder.com/400x250?text=Property+Details) | ![Admin Dashboard Placeholder](https://via.placeholder.com/400x250?text=Admin+Dashboard) |
+| <img width="1906" height="963" alt="image" src="https://github.com/user-attachments/assets/3f04fb12-5675-4205-ad94-876e4d7ef46d" />
+ | ![Property Details Placeholder](https://via.placeholder.com/400x250?text=Property+Details) | ![Admin Dashboard Placeholder](https://via.placeholder.com/400x250?text=Admin+Dashboard) |
 
 ## ✨ Key Features
 
