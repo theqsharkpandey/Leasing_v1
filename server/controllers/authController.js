@@ -117,7 +117,7 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: "Email is required" });
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
     // Always respond with success to prevent email enumeration
     if (!user)
       return res.json({
@@ -135,7 +135,7 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
 
-    const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+    const clientUrl = req.headers.origin || process.env.CLIENT_URL || "http://localhost:3000";
     const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
     await sendPasswordReset(user, resetUrl);
 

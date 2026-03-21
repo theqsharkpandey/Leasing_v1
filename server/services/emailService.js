@@ -8,6 +8,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
   connectionTimeout: 10000,
   greetingTimeout: 10000,
   socketTimeout: 10000,
@@ -22,6 +25,11 @@ async function send(to, subject, html) {
     console.log(
       `[Email skipped — SMTP not configured] To: ${to} | Subject: ${subject}`,
     );
+    // Explicitly log the reset link to the console for easier local testing
+    if (html.includes("Reset Password")) {
+      const match = html.match(/href="([^"]+)"/);
+      if (match) console.log(`[Reset Link for testing]: ${match[1]}`);
+    }
     return;
   }
   try {
