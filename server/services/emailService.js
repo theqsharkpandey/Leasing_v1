@@ -33,10 +33,11 @@ async function send(to, subject, html) {
     return;
   }
   try {
-    await transporter.sendMail({ from: FROM, to, subject, html });
-    console.log(`[Email sent] To: ${to} | Subject: ${subject}`);
+    const info = await transporter.sendMail({ from: FROM, to, subject, html });
+    console.log(`[Email sent] To: ${to} | Subject: ${subject} | MessageId: ${info.messageId}`);
   } catch (err) {
-    console.error("[Email error]", err.message);
+    console.error("[Email error]", err.message, "| Code:", err.code, "| Command:", err.command);
+    throw err; // Let the caller know the email failed
   }
 }
 

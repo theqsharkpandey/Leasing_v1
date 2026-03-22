@@ -137,7 +137,13 @@ exports.forgotPassword = async (req, res) => {
 
     const clientUrl = req.headers.origin || process.env.CLIENT_URL || "http://localhost:3000";
     const resetUrl = `${clientUrl}/reset-password?token=${rawToken}`;
-    await sendPasswordReset(user, resetUrl);
+
+    try {
+      await sendPasswordReset(user, resetUrl);
+    } catch (emailErr) {
+      console.error("[forgotPassword] Email delivery failed:", emailErr.message);
+      return res.status(500).json({ error: "Unable to send reset email. Please try again later." });
+    }
 
     res.json({ message: "If that email exists, a reset link has been sent." });
   } catch (err) {
