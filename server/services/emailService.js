@@ -1,45 +1,83 @@
 const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-});
+// ─── Providers ───────────────────────────────────────────────────────────────
+// 1. Resend (HTTP-based — works on Render free tier where SMTP ports are blocked)
+// 2. Nodemailer SMTP (fallback for local dev / paid hosting without port restrictions)
+
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+const transporter =
+  !resend &&
+  nodemailer.createTransport({
+    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
+  });
 
 const FROM =
-  process.env.EMAIL_FROM || "The Leasing World <noreply@leasingworld.com>";
+  process.env.EMAIL_FROM || "The Leasing World <onboarding@resend.dev>";
 
-// Generic send helper — won't throw if SMTP not configured
+// ─── Generic send helper ─────────────────────────────────────────────────────
 async function send(to, subject, html) {
-  if (!process.env.SMTP_USER || process.env.SMTP_USER.startsWith("your_")) {
+  // Skip if neither provider is configured
+  const smtpConfigured =
+    process.env.SMTP_USER && !process.env.SMTP_USER.startsWith("your_");
+  if (!resend && !smtpConfigured) {
     console.log(
-      `[Email skipped — SMTP not configured] To: ${to} | Subject: ${subject}`,
+      `[Email skipped — no provider configured] To: ${to} | Subject: ${subject}`,
     );
-    // Explicitly log the reset link to the console for easier local testing
+    // Log reset link for local testing convenience
     if (html.includes("Reset Password")) {
       const match = html.match(/href="([^"]+)"/);
       if (match) console.log(`[Reset Link for testing]: ${match[1]}`);
     }
     return;
   }
+
+  // Prefer Resend (HTTP API, no port restrictions)
+  if (resend) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: FROM,
+        to,
+        subject,
+        html,
+      });
+      if (error) {
+        console.error("[Resend error]", error);
+        throw new Error(error.message || "Resend email failed");
+      }
+      console.log(`[Email sent via Resend] To: ${to} | Subject: ${subject} | Id: ${data?.id}`);
+      return;
+    } catch (err) {
+      console.error("[Resend error]", err.message);
+      throw err;
+    }
+  }
+
+  // Fallback: Nodemailer SMTP
   try {
     const info = await transporter.sendMail({ from: FROM, to, subject, html });
-    console.log(`[Email sent] To: ${to} | Subject: ${subject} | MessageId: ${info.messageId}`);
+    console.log(`[Email sent via SMTP] To: ${to} | Subject: ${subject} | MessageId: ${info.messageId}`);
   } catch (err) {
-    console.error("[Email error]", err.message, "| Code:", err.code, "| Command:", err.command);
-    throw err; // Let the caller know the email failed
+    console.error("[SMTP error]", err.message, "| Code:", err.code, "| Command:", err.command);
+    throw err;
   }
 }
+
+// ─── Email templates ─────────────────────────────────────────────────────────
 
 exports.sendPropertySubmitted = async (property, user) => {
   await send(
