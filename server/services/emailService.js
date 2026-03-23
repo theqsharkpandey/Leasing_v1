@@ -1,15 +1,13 @@
 const nodemailer = require("nodemailer");
-const { Resend } = require("resend");
 
 // ─── Providers ───────────────────────────────────────────────────────────────
-// 1. Resend (HTTP-based — works on Render free tier where SMTP ports are blocked)
-// 2. Nodemailer SMTP (fallback for local dev / paid hosting without port restrictions)
+// 1. Brevo (formerly Sendinblue) HTTP API (works on Render free tier, no custom domain required initially)
+// 2. Nodemailer SMTP (fallback for local dev)
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+const brevoApiKey = process.env.BREVO_API_KEY;
 
 const transporter =
-  !resend &&
+  !brevoApiKey &&
   nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
     port: Number(process.env.SMTP_PORT) || 587,
@@ -26,15 +24,16 @@ const transporter =
     socketTimeout: 10000,
   });
 
-const FROM =
-  process.env.EMAIL_FROM || "The Leasing World <onboarding@resend.dev>";
+const FROM_EMAIL =
+  process.env.BREVO_FROM_EMAIL || "info@theleasingworld.com";
+const FROM_NAME = "The Leasing World";
 
 // ─── Generic send helper ─────────────────────────────────────────────────────
 async function send(to, subject, html) {
-  // Skip if neither provider is configured
   const smtpConfigured =
     process.env.SMTP_USER && !process.env.SMTP_USER.startsWith("your_");
-  if (!resend && !smtpConfigured) {
+  
+  if (!brevoApiKey && !smtpConfigured) {
     console.log(
       `[Email skipped — no provider configured] To: ${to} | Subject: ${subject}`,
     );
@@ -46,30 +45,47 @@ async function send(to, subject, html) {
     return;
   }
 
-  // Prefer Resend (HTTP API, no port restrictions)
-  if (resend) {
+  // Prefer Brevo (HTTP API avoids Render SMTP port blocking)
+  if (brevoApiKey) {
     try {
-      const { data, error } = await resend.emails.send({
-        from: FROM,
-        to,
-        subject,
-        html,
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "api-key": brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: { name: FROM_NAME, email: FROM_EMAIL },
+          to: [{ email: to }],
+          subject: subject,
+          htmlContent: html
+        })
       });
-      if (error) {
-        console.error("[Resend error]", error);
-        throw new Error(error.message || "Resend email failed");
+
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error("[Brevo error response]", errData);
+        throw new Error(errData.message || "Failed to send email via Brevo API");
       }
-      console.log(`[Email sent via Resend] To: ${to} | Subject: ${subject} | Id: ${data?.id}`);
+
+      const data = await response.json();
+      console.log(`[Email sent via Brevo] To: ${to} | Subject: ${subject} | MessageId: ${data.messageId}`);
       return;
     } catch (err) {
-      console.error("[Resend error]", err.message);
+      console.error("[Brevo error]", err.message);
       throw err;
     }
   }
 
   // Fallback: Nodemailer SMTP
   try {
-    const info = await transporter.sendMail({ from: FROM, to, subject, html });
+    const info = await transporter.sendMail({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to,
+      subject,
+      html,
+    });
     console.log(`[Email sent via SMTP] To: ${to} | Subject: ${subject} | MessageId: ${info.messageId}`);
   } catch (err) {
     console.error("[SMTP error]", err.message, "| Code:", err.code, "| Command:", err.command);
