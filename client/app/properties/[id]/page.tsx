@@ -81,7 +81,7 @@ function buildDescription(p: PropertyForMeta): string {
 
 // Professional property placeholder for WhatsApp/OG previews when property has no images
 function getDefaultPropertyImage(): string {
-  return "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=900&fit=crop&q=80";
+  return "https://via.placeholder.com/600x900/1e3a8a/ffffff?text=Property+Listing";
 }
 
 async function fetchPropertyForMeta(
