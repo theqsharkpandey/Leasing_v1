@@ -117,9 +117,7 @@ export async function generateMetadata(
   const propertyUrl = new URL(`/properties/${id}`, siteUrl).toString();
 
   const p = await fetchPropertyForMeta(id);
-  const ogImageVersion = p?.updatedAt
-    ? String(new Date(p.updatedAt).getTime())
-    : undefined;
+  const ogImageVersion = String(Date.now());
   const ogImageUrl = getPropertyOgImageUrl(id, siteUrl, ogImageVersion);
 
   // Fallback to parent metadata if property fetch fails
