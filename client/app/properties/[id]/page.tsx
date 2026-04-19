@@ -134,8 +134,8 @@ export async function generateMetadata(
         images: [
           {
             url: fallbackImage,
-            width: 1200,
-            height: 630,
+            width: 600,
+            height: 900,
             alt: "The Leasing World",
           },
         ],
@@ -172,8 +172,8 @@ export async function generateMetadata(
       images: [
         {
           url: image,
-          width: 1200,
-          height: 630,
+          width: 600,
+          height: 900,
           alt: p.title || "Property",
         },
       ],
