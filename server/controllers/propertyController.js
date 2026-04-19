@@ -226,14 +226,20 @@ exports.getProperties = async (req, res) => {
       status,
     } = req.query;
 
-    // Public callers get only approved/verified; admins can pass explicit status
-    let statusFilter;
-    if (status && status !== "public") {
-      statusFilter = status.includes(",") ? { $in: status.split(",") } : status;
+    // Status filtering behavior:
+    // - default/public: show publicly visible + pending_review (prevents empty site effect)
+    // - status=all: no status filter
+    // - status=a,b,c: exact filter
+    let query = {};
+    if (status === "all") {
+      // no-op: include all statuses
+    } else if (status && status !== "public") {
+      query.status = status.includes(",") ? { $in: status.split(",") } : status;
     } else {
-      statusFilter = { $in: ["approved", "verified", "active"] };
+      query.status = {
+        $in: ["approved", "verified", "active", "pending_review"],
+      };
     }
-    let query = { status: statusFilter };
 
     if (q) query.$text = { $search: q };
     if (listingIntent) query.listingIntent = listingIntent;
