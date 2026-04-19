@@ -79,6 +79,11 @@ function buildDescription(p: PropertyForMeta): string {
   );
 }
 
+// Professional property placeholder for WhatsApp/OG previews when property has no images
+function getDefaultPropertyImage(): string {
+  return "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=630&fit=crop&q=80";
+}
+
 async function fetchPropertyForMeta(
   id: string,
 ): Promise<PropertyForMeta | null> {
@@ -112,7 +117,7 @@ export async function generateMetadata(
     const fallbackTitle =
       "The Leasing World - Real Estate Advisory Across India";
     const fallbackDescription = "View property details on The Leasing World.";
-    const fallbackImage = new URL("/logo.png", siteUrl).toString();
+    const fallbackImage = getDefaultPropertyImage();
 
     return {
       title: fallbackTitle,
@@ -129,8 +134,8 @@ export async function generateMetadata(
         images: [
           {
             url: fallbackImage,
-            width: 512,
-            height: 512,
+            width: 1200,
+            height: 630,
             alt: "The Leasing World",
           },
         ],
@@ -150,7 +155,7 @@ export async function generateMetadata(
   const description = buildDescription(p);
   const image = p.images?.[0]
     ? toAbsoluteUrl(p.images[0], siteUrl)
-    : new URL("/logo.png", siteUrl).toString();
+    : getDefaultPropertyImage();
 
   return {
     title,
