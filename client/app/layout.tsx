@@ -5,6 +5,17 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
 
+function getSiteUrl(): URL {
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
+  if (explicit)
+    return new URL(explicit.endsWith("/") ? explicit : `${explicit}/`);
+
+  const vercel = process.env.VERCEL_URL;
+  if (vercel) return new URL(`https://${vercel}/`);
+
+  return new URL("http://localhost:3000/");
+}
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -16,6 +27,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getSiteUrl(),
   title: "The Leasing World - Real Estate Advisory Across India",
   description:
     "Expert real estate advisory services — Retail Leasing, Commercial Leasing, PMC, and Sales & Purchase. Trusted by 70+ brands since 2007.",
@@ -23,6 +35,29 @@ export const metadata: Metadata = {
     icon: "/logo.png",
     shortcut: "/logo.png",
     apple: "/logo.png",
+  },
+  openGraph: {
+    title: "The Leasing World - Real Estate Advisory Across India",
+    description:
+      "Expert real estate advisory services — Retail Leasing, Commercial Leasing, PMC, and Sales & Purchase. Trusted by 70+ brands since 2007.",
+    url: "/",
+    siteName: "The Leasing World",
+    type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 512,
+        height: 512,
+        alt: "The Leasing World",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "The Leasing World - Real Estate Advisory Across India",
+    description:
+      "Expert real estate advisory services — Retail Leasing, Commercial Leasing, PMC, and Sales & Purchase. Trusted by 70+ brands since 2007.",
+    images: ["/logo.png"],
   },
 };
 
