@@ -16,6 +16,7 @@ type PropertyForImage = {
 };
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
 export const size = {
   width: 600,
   height: 900,
@@ -62,7 +63,7 @@ async function fetchProperty(id: string): Promise<PropertyForImage | null> {
   try {
     const res = await fetch(
       `${getApiBaseUrl()}/properties/${encodeURIComponent(id)}`,
-      { next: { revalidate: 60 } },
+      { cache: "no-store" },
     );
     if (!res.ok) return null;
     return (await res.json()) as PropertyForImage;

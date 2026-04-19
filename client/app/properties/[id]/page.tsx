@@ -16,6 +16,7 @@ type PropertyForMeta = {
   price?: number;
   listingIntent?: string;
   images?: string[];
+  updatedAt?: string;
 };
 
 function getSiteUrl(): string {
@@ -79,8 +80,14 @@ function buildDescription(p: PropertyForMeta): string {
   );
 }
 
-function getPropertyOgImageUrl(id: string, base: string): string {
-  return new URL(`/properties/${id}/opengraph-image`, base).toString();
+function getPropertyOgImageUrl(
+  id: string,
+  base: string,
+  version?: string,
+): string {
+  const url = new URL(`/properties/${id}/opengraph-image`, base);
+  if (version) url.searchParams.set("v", version);
+  return url.toString();
 }
 
 async function fetchPropertyForMeta(
@@ -110,7 +117,10 @@ export async function generateMetadata(
   const propertyUrl = new URL(`/properties/${id}`, siteUrl).toString();
 
   const p = await fetchPropertyForMeta(id);
-  const ogImageUrl = getPropertyOgImageUrl(id, siteUrl);
+  const ogImageVersion = p?.updatedAt
+    ? String(new Date(p.updatedAt).getTime())
+    : undefined;
+  const ogImageUrl = getPropertyOgImageUrl(id, siteUrl, ogImageVersion);
 
   // Fallback to parent metadata if property fetch fails
   if (!p) {
