@@ -1,4 +1,5 @@
 import type { Metadata, ResolvingMetadata } from "next";
+import { headers } from "next/headers";
 import PropertyDetailClient from "./PropertyDetailClient";
 
 type PageProps = {
@@ -26,6 +27,18 @@ function getSiteUrl(): string {
 
   // local dev fallback
   return "http://localhost:3000";
+}
+
+async function getRequestBaseUrl(): Promise<string | null> {
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") || h.get("host");
+    if (!host) return null;
+    const proto = h.get("x-forwarded-proto") || "https";
+    return `${proto}://${host}`;
+  } catch {
+    return null;
+  }
 }
 
 function getApiBaseUrl(): string {
@@ -89,7 +102,7 @@ export async function generateMetadata(
   parent: ResolvingMetadata,
 ): Promise<Metadata> {
   const { id } = await Promise.resolve(params);
-  const siteUrl = getSiteUrl();
+  const siteUrl = (await getRequestBaseUrl()) || getSiteUrl();
   const propertyUrl = new URL(`/properties/${id}`, siteUrl).toString();
 
   const p = await fetchPropertyForMeta(id);
