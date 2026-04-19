@@ -79,9 +79,8 @@ function buildDescription(p: PropertyForMeta): string {
   );
 }
 
-// Professional property placeholder for WhatsApp/OG previews when property has no images
-function getDefaultPropertyImage(): string {
-  return "https://via.placeholder.com/600x900/1e3a8a/ffffff?text=Property+Listing";
+function getPropertyOgImageUrl(id: string, base: string): string {
+  return new URL(`/properties/${id}/opengraph-image`, base).toString();
 }
 
 async function fetchPropertyForMeta(
@@ -111,13 +110,14 @@ export async function generateMetadata(
   const propertyUrl = new URL(`/properties/${id}`, siteUrl).toString();
 
   const p = await fetchPropertyForMeta(id);
+  const ogImageUrl = getPropertyOgImageUrl(id, siteUrl);
 
   // Fallback to parent metadata if property fetch fails
   if (!p) {
     const fallbackTitle =
       "The Leasing World - Real Estate Advisory Across India";
     const fallbackDescription = "View property details on The Leasing World.";
-    const fallbackImage = getDefaultPropertyImage();
+    const fallbackImage = ogImageUrl;
 
     return {
       title: fallbackTitle,
@@ -153,9 +153,7 @@ export async function generateMetadata(
     ? `${p.title} | The Leasing World`
     : "Property | The Leasing World";
   const description = buildDescription(p);
-  const image = p.images?.[0]
-    ? toAbsoluteUrl(p.images[0], siteUrl)
-    : getDefaultPropertyImage();
+  const image = ogImageUrl;
 
   return {
     title,
