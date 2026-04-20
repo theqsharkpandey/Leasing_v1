@@ -18,20 +18,10 @@ type PropertyForImage = {
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 export const size = {
-  width: 600,
-  height: 900,
+  width: 1200,
+  height: 630,
 };
 export const contentType = "image/png";
-
-function getSiteUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_SITE_URL;
-  if (explicit) return explicit.replace(/\/$/, "");
-
-  const vercel = process.env.VERCEL_URL;
-  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
-
-  return "http://localhost:3000";
-}
 
 function getApiBaseUrl(): string {
   const env = process.env.NEXT_PUBLIC_API_URL;
@@ -50,13 +40,11 @@ function buildLocation(p: PropertyForImage): string {
 
 function buildPrice(p: PropertyForImage): string {
   if (typeof p.price !== "number" || Number.isNaN(p.price) || p.price <= 0) {
-    return "Available on request";
+    return "Price on request";
   }
+  if (p.price >= 10000000) return `₹${(p.price / 10000000).toFixed(2)} Cr`;
+  if (p.price >= 100000) return `₹${(p.price / 100000).toFixed(2)} L`;
   return `₹${p.price.toLocaleString("en-IN")}`;
-}
-
-function getFallbackPhoto(): string {
-  return "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80";
 }
 
 async function fetchProperty(id: string): Promise<PropertyForImage | null> {
@@ -72,21 +60,42 @@ async function fetchProperty(id: string): Promise<PropertyForImage | null> {
   }
 }
 
+/**
+ * Fetch an image and return it as a base64 data-URI.
+ * Falls back to null if the fetch fails.
+ */
+async function fetchImageAsDataUri(
+  url: string,
+): Promise<string | null> {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) return null;
+    const ct = res.headers.get("content-type") || "image/jpeg";
+    const buf = await res.arrayBuffer();
+    const b64 = btoa(
+      String.fromCharCode(...new Uint8Array(buf)),
+    );
+    return `data:${ct};base64,${b64}`;
+  } catch {
+    return null;
+  }
+}
+
 export default async function Image({ params }: Props) {
   const { id } = await Promise.resolve(params);
   const p = await fetchProperty(id);
 
-  const title = p?.title ? `${p.title}` : "Property Listing";
+  const title = p?.title || "Property Listing";
   const location = p ? buildLocation(p) : "The Leasing World";
-  const price = p ? buildPrice(p) : "Property preview";
-  const photo = p?.images?.[0]
-    ? p.images[0].startsWith("http")
-      ? p.images[0]
-      : new URL(
-          p.images[0].startsWith("/") ? p.images[0] : `/${p.images[0]}`,
-          getSiteUrl(),
-        ).toString()
-    : getFallbackPhoto();
+  const price = p ? buildPrice(p) : "";
+  const intent =
+    p?.listingIntent === "rent" ? "For Rent" : p?.listingIntent === "buy" ? "For Sale" : "";
+
+  // Attempt to fetch the first property image as a data URI
+  let photoDataUri: string | null = null;
+  if (p?.images?.[0]) {
+    photoDataUri = await fetchImageAsDataUri(p.images[0]);
+  }
 
   return new ImageResponse(
     <div
@@ -94,126 +103,216 @@ export default async function Image({ params }: Props) {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
-        background: "linear-gradient(180deg, #08131f 0%, #0a0f16 100%)",
-        color: "white",
         position: "relative",
         overflow: "hidden",
         fontFamily: "Inter, Arial, sans-serif",
+        background: "#0a0f16",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "linear-gradient(180deg, rgba(3,7,18,0.10), rgba(3,7,18,0.60)), url(" +
-            photo +
-            ")",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(8,19,31,0.05) 0%, rgba(8,19,31,0.25) 45%, rgba(8,19,31,0.88) 100%)",
-        }}
-      />
-
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          padding: "34px 34px 0 34px",
-          zIndex: 1,
-        }}
-      >
+      {/* Background property photo */}
+      {photoDataUri ? (
+        <img
+          src={photoDataUri}
+          alt=""
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+          }}
+        />
+      ) : (
+        /* Gradient fallback when no photo is available */
         <div
           style={{
-            width: 58,
-            height: 58,
-            borderRadius: 18,
-            background: "rgba(255,255,255,0.92)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#0f172a",
-            fontSize: 22,
-            fontWeight: 800,
-            boxShadow: "0 14px 30px rgba(0,0,0,0.25)",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background:
+              "linear-gradient(135deg, #1e3a5f 0%, #0a1628 50%, #162a46 100%)",
           }}
-        >
-          TLW
-        </div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.1 }}>
-            The Leasing World
-          </div>
-          <div style={{ fontSize: 14, opacity: 0.8 }}>Property preview</div>
-        </div>
-      </div>
+        />
+      )}
 
-      <div style={{ flex: 1, zIndex: 1 }} />
-
+      {/* Dark gradient overlay for text readability */}
       <div
         style={{
-          zIndex: 1,
-          padding: "0 34px 34px 34px",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.85) 100%)",
+        }}
+      />
+
+      {/* Content */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          justifyContent: "space-between",
+          padding: "40px 48px",
         }}
       >
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            alignSelf: "flex-start",
-            padding: "8px 14px",
-            borderRadius: 999,
-            background: "rgba(16,185,129,0.18)",
-            border: "1px solid rgba(16,185,129,0.35)",
-            color: "#d1fae5",
-            fontSize: 14,
-            fontWeight: 700,
-            letterSpacing: 0.2,
-          }}
-        >
-          Featured Property
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1.02 }}>
-            {title}
-          </div>
-          <div style={{ fontSize: 22, opacity: 0.92, lineHeight: 1.2 }}>
-            {location || "Prime location"}
-          </div>
-        </div>
-
+        {/* Top bar: branding + badge */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            gap: 16,
-            paddingTop: 10,
           }}
         >
-          <div style={{ fontSize: 30, fontWeight: 800 }}>{price}</div>
+          {/* Logo / Brand */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.95)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0f172a",
+                fontSize: 18,
+                fontWeight: 800,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+              }}
+            >
+              TLW
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: 800,
+                  color: "white",
+                  lineHeight: 1.1,
+                }}
+              >
+                The Leasing World
+              </div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
+                Real Estate Advisory
+              </div>
+            </div>
+          </div>
+
+          {/* Intent badge */}
+          {intent && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "8px 18px",
+                borderRadius: 999,
+                background:
+                  intent === "For Rent"
+                    ? "rgba(59,130,246,0.25)"
+                    : "rgba(16,185,129,0.25)",
+                border: `1.5px solid ${intent === "For Rent" ? "rgba(59,130,246,0.5)" : "rgba(16,185,129,0.5)"}`,
+                color: intent === "For Rent" ? "#93c5fd" : "#a7f3d0",
+                fontSize: 16,
+                fontWeight: 700,
+                letterSpacing: 0.5,
+              }}
+            >
+              {intent}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom: property details */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Title */}
           <div
             style={{
-              fontSize: 16,
-              color: "#bae6fd",
-              fontWeight: 600,
+              fontSize: 48,
+              fontWeight: 900,
+              color: "white",
+              lineHeight: 1.1,
+              textShadow: "0 2px 20px rgba(0,0,0,0.5)",
+              maxWidth: "85%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
-            leasingworld.vercel.app
+            {title.length > 50 ? title.slice(0, 47) + "..." : title}
+          </div>
+
+          {/* Location */}
+          {location && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                fontSize: 22,
+                color: "rgba(255,255,255,0.9)",
+                textShadow: "0 1px 8px rgba(0,0,0,0.4)",
+              }}
+            >
+              📍 {location}
+            </div>
+          )}
+
+          {/* Price row */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginTop: 4,
+            }}
+          >
+            {price && (
+              <div
+                style={{
+                  fontSize: 38,
+                  fontWeight: 800,
+                  color: "#60a5fa",
+                  textShadow: "0 2px 12px rgba(0,0,0,0.4)",
+                }}
+              >
+                {price}
+                {p?.listingIntent === "rent" && (
+                  <span
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 500,
+                      color: "rgba(255,255,255,0.6)",
+                      marginLeft: 4,
+                    }}
+                  >
+                    /month
+                  </span>
+                )}
+              </div>
+            )}
+            <div
+              style={{
+                fontSize: 15,
+                color: "rgba(255,255,255,0.5)",
+                fontWeight: 600,
+              }}
+            >
+              leasingworld.vercel.app
+            </div>
           </div>
         </div>
       </div>

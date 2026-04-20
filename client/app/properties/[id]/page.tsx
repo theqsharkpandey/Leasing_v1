@@ -83,11 +83,8 @@ function buildDescription(p: PropertyForMeta): string {
 function getPropertyOgImageUrl(
   id: string,
   base: string,
-  version?: string,
 ): string {
-  const url = new URL(`/properties/${id}/opengraph-image`, base);
-  if (version) url.searchParams.set("v", version);
-  return url.toString();
+  return new URL(`/properties/${id}/opengraph-image`, base).toString();
 }
 
 async function fetchPropertyForMeta(
@@ -117,8 +114,7 @@ export async function generateMetadata(
   const propertyUrl = new URL(`/properties/${id}`, siteUrl).toString();
 
   const p = await fetchPropertyForMeta(id);
-  const ogImageVersion = String(Date.now());
-  const ogImageUrl = getPropertyOgImageUrl(id, siteUrl, ogImageVersion);
+  const ogImageUrl = getPropertyOgImageUrl(id, siteUrl);
 
   // Fallback to parent metadata if property fetch fails
   if (!p) {
@@ -142,8 +138,8 @@ export async function generateMetadata(
         images: [
           {
             url: fallbackImage,
-            width: 600,
-            height: 900,
+            width: 1200,
+            height: 630,
             alt: "The Leasing World",
           },
         ],
@@ -178,8 +174,8 @@ export async function generateMetadata(
       images: [
         {
           url: image,
-          width: 600,
-          height: 900,
+          width: 1200,
+          height: 630,
           alt: p.title || "Property",
         },
       ],
