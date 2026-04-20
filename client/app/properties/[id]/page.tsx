@@ -54,12 +54,6 @@ function getApiBaseUrl(): string {
   return "https://leasing-v1.onrender.com/api";
 }
 
-function toAbsoluteUrl(url: string, base: string): string {
-  if (!url) return url;
-  if (/^https?:\/\//i.test(url)) return url;
-  return new URL(url.startsWith("/") ? url : `/${url}`, base).toString();
-}
-
 function buildDescription(p: PropertyForMeta): string {
   const parts: string[] = [];
   if (p.area || p.city || p.state) {
@@ -80,11 +74,24 @@ function buildDescription(p: PropertyForMeta): string {
   );
 }
 
-function getPropertyOgImageUrl(
-  id: string,
-  base: string,
-): string {
-  return new URL(`/properties/${id}/opengraph-image`, base).toString();
+/**
+ * Apply Cloudinary transformations to resize the image for OG previews.
+ * WhatsApp / social crawlers prefer 1200×630 images served fast from a CDN.
+ */
+function getOgImage(imageUrl: string): string {
+  if (!imageUrl) return "";
+
+  // For Cloudinary URLs, inject a resize transformation
+  // e.g. .../upload/v123/... → .../upload/c_fill,w_1200,h_630,q_auto,f_jpg/v123/...
+  if (imageUrl.includes("res.cloudinary.com") && imageUrl.includes("/upload/")) {
+    return imageUrl.replace(
+      "/upload/",
+      "/upload/c_fill,w_1200,h_630,g_auto,q_auto,f_jpg/",
+    );
+  }
+
+  // Non-Cloudinary URLs — return as-is
+  return imageUrl;
 }
 
 async function fetchPropertyForMeta(
@@ -114,14 +121,15 @@ export async function generateMetadata(
   const propertyUrl = new URL(`/properties/${id}`, siteUrl).toString();
 
   const p = await fetchPropertyForMeta(id);
-  const ogImageUrl = getPropertyOgImageUrl(id, siteUrl);
+
+  // Fallback logo image (absolute URL)
+  const fallbackImage = new URL("/logo.png", siteUrl).toString();
 
   // Fallback to parent metadata if property fetch fails
   if (!p) {
     const fallbackTitle =
       "The Leasing World - Real Estate Advisory Across India";
     const fallbackDescription = "View property details on The Leasing World.";
-    const fallbackImage = ogImageUrl;
 
     return {
       title: fallbackTitle,
@@ -157,7 +165,13 @@ export async function generateMetadata(
     ? `${p.title} | The Leasing World`
     : "Property | The Leasing World";
   const description = buildDescription(p);
-  const image = ogImageUrl;
+
+  // Use the first property image (Cloudinary CDN — fast, reliable)
+  // Apply Cloudinary transformations for optimal 1200x630 size
+  const image =
+    p.images && p.images.length > 0
+      ? getOgImage(p.images[0])
+      : fallbackImage;
 
   return {
     title,
