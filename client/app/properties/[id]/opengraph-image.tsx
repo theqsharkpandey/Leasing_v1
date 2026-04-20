@@ -60,27 +60,6 @@ async function fetchProperty(id: string): Promise<PropertyForImage | null> {
   }
 }
 
-/**
- * Fetch an image and return it as a base64 data-URI.
- * Falls back to null if the fetch fails.
- */
-async function fetchImageAsDataUri(
-  url: string,
-): Promise<string | null> {
-  try {
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) return null;
-    const ct = res.headers.get("content-type") || "image/jpeg";
-    const buf = await res.arrayBuffer();
-    const b64 = btoa(
-      String.fromCharCode(...new Uint8Array(buf)),
-    );
-    return `data:${ct};base64,${b64}`;
-  } catch {
-    return null;
-  }
-}
-
 export default async function Image({ params }: Props) {
   const { id } = await Promise.resolve(params);
   const p = await fetchProperty(id);
@@ -89,13 +68,15 @@ export default async function Image({ params }: Props) {
   const location = p ? buildLocation(p) : "The Leasing World";
   const price = p ? buildPrice(p) : "";
   const intent =
-    p?.listingIntent === "rent" ? "For Rent" : p?.listingIntent === "buy" ? "For Sale" : "";
+    p?.listingIntent === "rent"
+      ? "For Rent"
+      : p?.listingIntent === "buy"
+        ? "For Sale"
+        : "";
 
-  // Attempt to fetch the first property image as a data URI
-  let photoDataUri: string | null = null;
-  if (p?.images?.[0]) {
-    photoDataUri = await fetchImageAsDataUri(p.images[0]);
-  }
+  // Use external image URL directly — Satori (used by ImageResponse) will fetch it
+  const photoUrl = p?.images?.[0] || "";
+  const hasPhoto = Boolean(photoUrl);
 
   return new ImageResponse(
     <div
@@ -109,11 +90,13 @@ export default async function Image({ params }: Props) {
         background: "#0a0f16",
       }}
     >
-      {/* Background property photo */}
-      {photoDataUri ? (
+      {/* Background property photo — uses img tag for Satori compatibility */}
+      {hasPhoto ? (
         <img
-          src={photoDataUri}
+          src={photoUrl}
           alt=""
+          width={1200}
+          height={630}
           style={{
             position: "absolute",
             top: 0,
@@ -132,6 +115,7 @@ export default async function Image({ params }: Props) {
             left: 0,
             width: "100%",
             height: "100%",
+            display: "flex",
             background:
               "linear-gradient(135deg, #1e3a5f 0%, #0a1628 50%, #162a46 100%)",
           }}
@@ -267,7 +251,7 @@ export default async function Image({ params }: Props) {
                 textShadow: "0 1px 8px rgba(0,0,0,0.4)",
               }}
             >
-              📍 {location}
+              {location}
             </div>
           )}
 
@@ -283,6 +267,9 @@ export default async function Image({ params }: Props) {
             {price && (
               <div
                 style={{
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 4,
                   fontSize: 38,
                   fontWeight: 800,
                   color: "#60a5fa",
@@ -296,7 +283,6 @@ export default async function Image({ params }: Props) {
                       fontSize: 18,
                       fontWeight: 500,
                       color: "rgba(255,255,255,0.6)",
-                      marginLeft: 4,
                     }}
                   >
                     /month
