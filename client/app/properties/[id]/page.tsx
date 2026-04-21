@@ -76,17 +76,20 @@ function buildDescription(p: PropertyForMeta): string {
 
 /**
  * Apply Cloudinary transformations to resize the image for OG previews.
- * WhatsApp / social crawlers prefer 1200×630 images served fast from a CDN.
+ *
+ * WhatsApp displays a LARGE vertical card for square images (1:1 ratio)
+ * and a small horizontal thumbnail for landscape (1.91:1).
+ * We use 1080×1080 to match Instagram-style large preview cards.
  */
 function getOgImage(imageUrl: string): string {
   if (!imageUrl) return "";
 
-  // For Cloudinary URLs, inject a resize transformation
-  // e.g. .../upload/v123/... → .../upload/c_fill,w_1200,h_630,q_auto,f_jpg/v123/...
+  // For Cloudinary URLs, inject a square resize transformation
+  // 1080×1080 triggers WhatsApp's large card display (same as Instagram)
   if (imageUrl.includes("res.cloudinary.com") && imageUrl.includes("/upload/")) {
     return imageUrl.replace(
       "/upload/",
-      "/upload/c_fill,w_1200,h_630,g_auto,q_auto,f_jpg/",
+      "/upload/c_fill,w_1080,h_1080,g_auto,q_auto,f_jpg/",
     );
   }
 
@@ -142,12 +145,12 @@ export async function generateMetadata(
         description: fallbackDescription,
         url: propertyUrl,
         siteName: "The Leasing World",
-        type: "website",
+        type: "article",
         images: [
           {
             url: fallbackImage,
-            width: 1200,
-            height: 630,
+            width: 1080,
+            height: 1080,
             alt: "The Leasing World",
           },
         ],
@@ -184,12 +187,12 @@ export async function generateMetadata(
       description,
       url: propertyUrl,
       siteName: "The Leasing World",
-      type: "website",
+      type: "article",
       images: [
         {
           url: image,
-          width: 1200,
-          height: 630,
+          width: 1080,
+          height: 1080,
           alt: p.title || "Property",
         },
       ],
