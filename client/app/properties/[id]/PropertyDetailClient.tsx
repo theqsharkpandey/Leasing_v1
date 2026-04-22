@@ -340,7 +340,10 @@ export default function PropertyDetailClient() {
                 <GitCompareArrows className="h-4 w-4" />
                 {comparing ? "In Compare" : "Compare"}
               </button>
-              <ShareButton />
+              <ShareButton
+                imageUrl={property.images?.[0]}
+                propertyTitle={property.title}
+              />
             </div>
           </div>
         </FadeIn>
