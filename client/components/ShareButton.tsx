@@ -35,9 +35,10 @@ export default function ShareButton({ imageUrl, propertyTitle }: ShareButtonProp
     setOpen(false);
   };
 
-  // WhatsApp message: emoji + bold title + link on next line
-  const waText = `🏠 *${title}*\n\n${url}`;
-  const waHref = `https://wa.me/?text=${encodeURIComponent(waText)}`;
+  // Plain text only — no emoji or *bold* syntax.
+  // Special characters cause WhatsApp Web's send button to silently fail.
+  const waText = `${title}\n${url}`;
+  const waHref = `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
 
   const shareLinks = [
     {
